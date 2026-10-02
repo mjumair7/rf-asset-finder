@@ -56,6 +56,11 @@ std::optional<Packet> decode(const std::vector<std::uint8_t>& frame) {
     return std::nullopt;
   }
 
+  if (frame[3] != static_cast<std::uint8_t>(PacketType::Beacon) &&
+      frame[3] != static_cast<std::uint8_t>(PacketType::Acknowledgement)) {
+    return std::nullopt;
+  }
+
   const auto payload_length = static_cast<std::size_t>(frame[8]);
   if (payload_length > kMaxPayload || frame.size() != kHeaderBytes + payload_length + 2) {
     return std::nullopt;

@@ -19,10 +19,26 @@ void writeU16(uint8_t* target, uint16_t value) {
   target[1] = static_cast<uint8_t>(value & 0xFF);
 }
 
+uint16_t readU16(const uint8_t* source) {
+  return static_cast<uint16_t>(source[0] << 8 | source[1]);
+}
+
+bool validAck(const uint8_t* response, uint8_t length, uint16_t expectedSequence) {
+  if (length != 11 || response[0] != 'R' || response[1] != 'F' ||
+      response[2] != 1 || response[3] != 0xA0 || response[8] != 0) {
+    return false;
+  }
+  if (readU16(response + 4) != kTagId || readU16(response + 6) != expectedSequence) {
+    return false;
+  }
+  return readU16(response + 9) == crc16(response, 9);
+}
+
 bool sendBeacon() {
   uint8_t frame[13] = {'R', 'F', 1, 0x10, 0, 0, 0, 0, 2, 0, 0, 0, 0};
   writeU16(frame + 4, kTagId);
-  writeU16(frame + 6, ++sequenceNumber);
+  const uint16_t currentSequence = ++sequenceNumber;
+  writeU16(frame + 6, currentSequence);
   writeU16(frame + 9, 3700);
   writeU16(frame + 11, crc16(frame, 11));
   for (uint8_t attempt = 0; attempt < 3; ++attempt) {
@@ -31,8 +47,7 @@ bool sendBeacon() {
     if (radio.waitAvailableTimeout(160)) {
       uint8_t response[8];
       uint8_t length = sizeof(response);
-      if (radio.recv(response, &length) && length >= 4 && response[0] == 'R' &&
-          response[1] == 'F' && response[3] == 0xA0) return true;
+      if (radio.recv(response, &length) && validAck(response, length, currentSequence)) return true;
     }
     delay(40 + attempt * 35);
   }
