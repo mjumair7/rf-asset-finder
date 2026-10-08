@@ -2,7 +2,9 @@
 
 [![CI](https://github.com/mjumair7/rf-asset-finder/actions/workflows/ci.yml/badge.svg)](https://github.com/mjumair7/rf-asset-finder/actions/workflows/ci.yml)
 
-A small 433 MHz asset-presence experiment I built to learn what a radio link needs beyond simply sending bytes. The protocol uses explicit framing, CRC-16 validation, sequence numbers, acknowledgements, retries, and timeouts.
+This is a small 433 MHz experiment, not a finished asset tracker. I wanted to see what has to exist around a radio send call before a base station can make a useful “present or missing” decision.
+
+That turned into a basic packet format with a CRC, sequence numbers, acknowledgements, retries, and a timeout.
 
 The repository has two layers:
 
@@ -45,7 +47,11 @@ The demo feeds three tags into the tracker, advances the clock, and reports the 
 | Payload | 0–16 | Battery voltage or future telemetry |
 | CRC-16/CCITT | 2 | Covers every preceding byte |
 
-The tag only accepts an ACK when its device ID, sequence number, length, and CRC all match the beacon it just sent.
+## The detail that matters
+
+A packet can be perfectly valid and still be the wrong acknowledgement. The tag therefore checks the device ID, sequence number, packet type, length, and CRC before it accepts an ACK.
+
+The desktop side also rejects duplicate beacons and non-beacon packets. Those checks are small, but without them the demo can look reliable while tracking the wrong message.
 
 ## Hardware notes
 
